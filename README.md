@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgonthefly "path_to_your_pgonthefly_package"
+	pgonthefly "github.com/problem-company-toolkit/pgonthefly"
 )
 
 var _ = Describe("My DAO tests", func() {
@@ -56,8 +56,6 @@ var _ = Describe("My DAO tests", func() {
 	})
 })
 ```
-
-Remember to replace `"path_to_your_pgonthefly_package"` with the actual import path to your `pgonthefly` package.
 
 The example illustrates a typical testing scenario where:
 
