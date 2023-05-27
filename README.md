@@ -6,13 +6,13 @@
 
 This package is useful for:
 
-- Testing if migrations work.
-- Testing if the database interfaces work correctly with the database (integration testing).
+-   Testing if migrations work.
+-   Testing if the database interfaces work correctly with the database (integration testing).
 
 ## Limitations
 
-- This package is designed for integration testing and should **not** be used for unit testing.
-- Databases created by this package require manual deletion.
+-   This package is designed for integration testing and should **not** be used for unit testing.
+-   Databases created by this package require manual deletion.
 
 ## Usage
 
@@ -28,29 +28,31 @@ import (
 	pgonthefly "github.com/problem-company-toolkit/pgonthefly"
 )
 
-var _ = Describe("My DAO tests", func() {
-	var db *pgonthefly.DB
+var db *pgonthefly.DB
 
-	AutomigrateAll := func(db *pgonthefly.DB) error {
+var _ = BeforeEach(func() {
+	var err error
+
+	automigrateAll := func(db *pgonthefly.DB) error {
 		// Implement your logic here
 		return nil
 	}
 
-	BeforeEach(func() {
-		var err error
-		db, err = pgonthefly.CreateDatabase("my_db", "localhost", "5432", "my_user", "my_password", pgonthefly.DatabaseOptions{
-			AutomigrateFunc: AutomigrateAll,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		// Initiate your DAO here using the db.Conn
+	db, err = pgonthefly.CreateDatabase("my_db", "localhost", "5432", "my_user", "my_password", pgonthefly.DatabaseOptions{
+		AutomigrateFunc: automigrateAll,
 	})
+	Expect(err).NotTo(HaveOccurred())
 
-	AfterEach(func() {
-		err := pgonthefly.DeleteDatabase("my_db", "localhost", "5432", "my_user", "my_password", db.Name)
-		Expect(err).NotTo(HaveOccurred())
-	})
+	// Initiate your DAO here using the db.Conn
+})
 
+var _ = AfterEach(func() {
+	// Maybe read from your ENVs here if you're using a devcontainer.
+	err := pgonthefly.DeleteDatabase("my_db", "localhost", "5432", "my_user", "my_password", db.Name)
+	Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = Describe("My DAO tests", func() {
 	It("should interact with the real database correctly", func() {
 		// Your tests here
 	})
@@ -59,8 +61,8 @@ var _ = Describe("My DAO tests", func() {
 
 The example illustrates a typical testing scenario where:
 
-- In a top-level `BeforeEach`, we create a test database and initiate the DAO.
-- In the tests, we interact with the real database.
-- In a top-level `AfterEach`, we delete the test database to clean up.
+-   In a top-level `BeforeEach`, we create a test database and initiate the DAO.
+-   In the tests, we interact with the real database.
+-   In a top-level `AfterEach`, we delete the test database to clean up.
 
 **IMPORTANT:** Databases created by this package need to be deleted manually. Ensure you delete any test databases created during your testing to avoid resource clutter.
