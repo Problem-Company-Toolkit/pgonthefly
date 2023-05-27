@@ -22,7 +22,7 @@ Here is an example of how to use `pgonthefly`:
 package mypackage_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	pgonthefly "github.com/problem-company-toolkit/pgonthefly"
