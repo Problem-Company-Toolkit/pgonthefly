@@ -6,9 +6,16 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type DatabaseOptions struct {
+	DbName          string
+	DbHost          string
+	DbPort          string
+	DbUser          string
+	DbPassword      string
+	DbSchema        string
 	AutomigrateFunc func(*DB) error
 }
 
@@ -35,12 +42,11 @@ func GetSchemaConnection(dsn string) (*gorm.DB, error) {
 }
 
 func GenerateDSN(host, port, dbName, user, password string) string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		host, user, password, dbName, port)
+	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable&TimeZone=UTC", user, password, host, port, dbName)
 }
 
-func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOptions) (*DB, error) {
-	dsn := GenerateDSN(host, port, dbName, user, password)
+func CreateDatabase(opts DatabaseOptions) (*DB, error) {
+	dsn := GenerateDSN(opts.DbHost, opts.DbPort, opts.DbName, opts.DbUser, opts.DbPassword)
 
 	defaultDB, err := GetSchemaConnection(dsn)
 	if err != nil {
@@ -56,14 +62,26 @@ func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOpti
 		return nil, err
 	}
 
-	dsn = GenerateDSN(host, port, databaseName, user, password)
+	dsn = GenerateDSN(opts.DbHost, opts.DbPort, databaseName, opts.DbUser, opts.DbPassword)
 
-	testConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	dbSchema := opts.DbSchema
+
+	if dbSchema == "" {
+		dbSchema = "public"
+	}
+
+	tablePrefix := fmt.Sprintf("%s.", dbSchema)
+
+	testConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix: tablePrefix,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	db := NewDB(testConn, databaseName, "public")
+	db := NewDB(testConn, databaseName, dbSchema)
 
 	if opts.AutomigrateFunc != nil {
 		err := opts.AutomigrateFunc(db)
@@ -75,8 +93,17 @@ func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOpti
 	return db, nil
 }
 
-func DeleteDatabase(dbName, host, port, user, password, target string) error {
-	dsn := GenerateDSN(host, port, dbName, user, password)
+type DeleteDatabaseOpts struct {
+	DbName     string
+	DbHost     string
+	DbPort     string
+	DbUser     string
+	DbPassword string
+	Target     string
+}
+
+func DeleteDatabase(opts DeleteDatabaseOpts) error {
+	dsn := GenerateDSN(opts.DbHost, opts.DbPort, opts.DbName, opts.DbUser, opts.DbPassword)
 
 	defaultDB, err := GetSchemaConnection(dsn)
 	if err != nil {
@@ -84,7 +111,7 @@ func DeleteDatabase(dbName, host, port, user, password, target string) error {
 	}
 
 	if err := defaultDB.Exec(
-		fmt.Sprintf(`DROP DATABASE "%s" WITH (FORCE)`, target),
+		fmt.Sprintf(`DROP DATABASE "%s" WITH (FORCE)`, opts.Target),
 	).Error; err != nil {
 		return err
 	}

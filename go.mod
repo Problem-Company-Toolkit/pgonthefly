@@ -3,6 +3,7 @@ module github.com/problem-company-toolkit/pgonthefly
 go 1.19
 
 require (
+	github.com/brianvoe/gofakeit/v6 v6.23.0
 	github.com/google/uuid v1.3.0
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
