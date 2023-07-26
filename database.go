@@ -6,9 +6,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type DatabaseOptions struct {
+	DbSchema        string
 	AutomigrateFunc func(*DB) error
 }
 
@@ -35,8 +37,7 @@ func GetSchemaConnection(dsn string) (*gorm.DB, error) {
 }
 
 func GenerateDSN(host, port, dbName, user, password string) string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		host, user, password, dbName, port)
+	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable&TimeZone=UTC", user, password, host, port, dbName)
 }
 
 func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOptions) (*DB, error) {
@@ -58,12 +59,24 @@ func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOpti
 
 	dsn = GenerateDSN(host, port, databaseName, user, password)
 
-	testConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	dbSchema := opts.DbSchema
+
+	if dbSchema == "" {
+		dbSchema = "public"
+	}
+
+	tablePrefix := fmt.Sprintf("%s.", dbSchema)
+
+	testConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix: tablePrefix,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	db := NewDB(testConn, databaseName, "public")
+	db := NewDB(testConn, databaseName, dbSchema)
 
 	if opts.AutomigrateFunc != nil {
 		err := opts.AutomigrateFunc(db)
