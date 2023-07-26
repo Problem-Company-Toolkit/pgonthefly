@@ -10,11 +10,6 @@ import (
 )
 
 type DatabaseOptions struct {
-	DbName          string
-	DbHost          string
-	DbPort          string
-	DbUser          string
-	DbPassword      string
 	DbSchema        string
 	AutomigrateFunc func(*DB) error
 }
@@ -45,8 +40,8 @@ func GenerateDSN(host, port, dbName, user, password string) string {
 	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable&TimeZone=UTC", user, password, host, port, dbName)
 }
 
-func CreateDatabase(opts DatabaseOptions) (*DB, error) {
-	dsn := GenerateDSN(opts.DbHost, opts.DbPort, opts.DbName, opts.DbUser, opts.DbPassword)
+func CreateDatabase(dbName, host, port, user, password string, opts DatabaseOptions) (*DB, error) {
+	dsn := GenerateDSN(host, port, dbName, user, password)
 
 	defaultDB, err := GetSchemaConnection(dsn)
 	if err != nil {
@@ -62,7 +57,7 @@ func CreateDatabase(opts DatabaseOptions) (*DB, error) {
 		return nil, err
 	}
 
-	dsn = GenerateDSN(opts.DbHost, opts.DbPort, databaseName, opts.DbUser, opts.DbPassword)
+	dsn = GenerateDSN(host, port, databaseName, user, password)
 
 	dbSchema := opts.DbSchema
 
@@ -93,17 +88,8 @@ func CreateDatabase(opts DatabaseOptions) (*DB, error) {
 	return db, nil
 }
 
-type DeleteDatabaseOpts struct {
-	DbName     string
-	DbHost     string
-	DbPort     string
-	DbUser     string
-	DbPassword string
-	Target     string
-}
-
-func DeleteDatabase(opts DeleteDatabaseOpts) error {
-	dsn := GenerateDSN(opts.DbHost, opts.DbPort, opts.DbName, opts.DbUser, opts.DbPassword)
+func DeleteDatabase(dbName, host, port, user, password, target string) error {
+	dsn := GenerateDSN(host, port, dbName, user, password)
 
 	defaultDB, err := GetSchemaConnection(dsn)
 	if err != nil {
@@ -111,7 +97,7 @@ func DeleteDatabase(opts DeleteDatabaseOpts) error {
 	}
 
 	if err := defaultDB.Exec(
-		fmt.Sprintf(`DROP DATABASE "%s" WITH (FORCE)`, opts.Target),
+		fmt.Sprintf(`DROP DATABASE "%s" WITH (FORCE)`, target),
 	).Error; err != nil {
 		return err
 	}
